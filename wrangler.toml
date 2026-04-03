@@ -1,3 +1,4 @@
 name = "email-discord-bot"
 main = "email-discord-bot/src/index.js"
 compatibility_date = "2026-04-03"
+account_id = "147cc2e87b50cb79185952f076af9b95"
