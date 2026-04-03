@@ -1,8 +1,11 @@
 import PostalMime from 'postal-mime';
-require('dotenv').config()
 
 //日付の整形
-function formatDate(date) {
+function formatDate(dateString) {
+	const date = new Date(dateString);
+
+	if (isNaN(date.getTime())) return "不明な日付";
+
   const year = date.getFullYear();
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
   const day = date.getDate().toString().padStart(2, '0');
@@ -14,7 +17,6 @@ function formatDate(date) {
 
 // 引用部分を削除する関数
 function removeQuotedText(body) {
-  // Gmailの返信引用部分に含まれるパターンを検出
   const quotePatterns = [
     /^On.*wrote:$/m,          // "On [date] wrote:" の形式
     /^>+.*$/m,                // ">" から始まる行
@@ -50,7 +52,7 @@ export default {
 
 		const parsed = await PostalMime.parse(message.raw);
 
-		let body = removeQuotedText(parsed.text);
+		let body = removeQuotedText(parsed.text || parsed.html || "");;
 
 		if (body.length > 1900 ){
 			body = body.substring(0, 1890) + "\n...（省略）";
