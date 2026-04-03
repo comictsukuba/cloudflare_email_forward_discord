@@ -11,20 +11,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      # 1. Node.js環境をセットアップする
+      # 1. Node.js環境をセットアップ
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           
-      # 2. 対象のフォルダに移動して、パッケージ（postal-mimeなど）をインストールする
+      # 2. パッケージのインストール
       - name: Install dependencies
         run: npm install
         working-directory: email-discord-bot
         
-      # 3. Cloudflare Workersへデプロイする
+      # 3. Cloudflare Workersへデプロイ
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: "147cc2e87b50cb79185952f076af9b95"
           workingDirectory: email-discord-bot
