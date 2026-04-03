@@ -33,14 +33,14 @@ flowchart TD
         
         CF_Workers[Cloudflare Email Workers<br>email-discord-bot]
         
-        Discord[コミつくDiscordサーバー<br>#006_gmail転送]
+        Discord[Discrod<br>Webhook]
         
         Sakura[(SAKURA レンタルサーバ<br>メール保管・送信)]
         
         ExtSender -->|"① メール受信<br>(to info@)"| CF_Routing
         CF_Routing -->|"② Routing Rules<br>Action: Send to a Worker"| CF_Workers
         CF_Workers -->|"③ fetch API(POST)"| Discord
-        CF_Workers -->|"④ メール転送<br>(to info@comic-tsukuba.sakura.ne.jp)"| Sakura
+        CF_Workers -->|"④ メール転送<br>(to hoge@xxx.sakura.ne.jp)"| Sakura
     end
 
     subgraph SendFlow [送信フロー]
