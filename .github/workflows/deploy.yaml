@@ -3,14 +3,28 @@ name: Deploy Worker
 on:
   push:
     branches:
-      - main # mainブランチにコードがプッシュされたら自動で動く
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
+      # 1. Node.js環境をセットアップする
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      # 2. 対象のフォルダに移動して、パッケージ（postal-mimeなど）をインストールする
+      - name: Install dependencies
+        run: npm install
+        working-directory: email-discord-bot
+        
+      # 3. Cloudflare Workersへデプロイする
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: email-discord-bot
