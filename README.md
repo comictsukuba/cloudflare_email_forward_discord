@@ -45,7 +45,7 @@ flowchart TD
 
     subgraph SendFlow [送信フロー]
         direction TB
-        EmailClient([送受信者<br>Thunderbird])
+        EmailClient([送受信者<br>メールクライアント])
         Recipient([外部の受信者])
     end
 
