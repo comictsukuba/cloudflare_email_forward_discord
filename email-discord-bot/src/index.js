@@ -70,7 +70,7 @@ function isSpam(message) {
   ];
   const subjectLower = subject.toLowerCase();
   for (const keyword of spamKeywords) {
-    if (subjectLower.includes(keyword)) {
+    if (subjectLower.includes(keyword.toLowerCase())) {
       return { spam: true, reason: `NGキーワード検出: ${keyword}` };
     }
   }
