@@ -43,48 +43,96 @@ function formatAddresses(addresses) {
   return addresses.map(addr => addr.address).join(', ');
 }
 
+// スパム判定
+function isSpam(message) {
+  const from = message.from || "";
+  const subject = message.headers.get("subject") || "";
+  const authResults = message.headers.get("Authentication-Results") || "";
+
+  // ブラックリストドメイン
+  const blockedDomains = ["spammer.com"];
+  const domain = from.split('@')[1] || "";
+  if (blockedDomains.includes(domain)) {
+    return { spam: true, reason: "ブラックリストのドメイン" };
+  }
+
+  // 件名のNGキーワード
+  const spamKeywords = 
+  [ 
+    "センチュリオン", 
+    "当選", 
+    "viagra", 
+    "投資", 
+    "ビットコイン",
+    "Bitcoin",
+    "MetaMask",
+    "American Express"
+  ];
+  const subjectLower = subject.toLowerCase();
+  for (const keyword of spamKeywords) {
+    if (subjectLower.includes(keyword)) {
+      return { spam: true, reason: `NGキーワード検出: ${keyword}` };
+    }
+  }
+
+  // SPF / DKIM 認証の失敗
+  if (authResults.includes("spf=fail") || authResults.includes("dkim=fail")) {
+    return { spam: true, reason: "SPFまたはDKIM認証失敗" };
+  }
+
+  return { spam: false };
+}
+
 export default {
-	async email(message, env, ctx) {
-	
-		const FORWARD_ADDRESS = env.FORWARD_ADDRESS;
-		const	DISCORD_WEBHOOK_URL = env.DISCORD_WEBHOOK_URL;
+  async email(message, env, ctx) {
+    const FORWARD_ADDRESS = env.FORWARD_ADDRESS;
+    const DISCORD_WEBHOOK_URL = env.DISCORD_WEBHOOK_URL;
 
-		await message.forward(FORWARD_ADDRESS).catch (e => console.error("メール転送エラー:", e));
+    // メールの転送（スパム判定に関わらず必ず実行）
+    await message.forward(FORWARD_ADDRESS).catch(e => console.error("メール転送エラー:", e));
 
-		const parsed = await PostalMime.parse(message.raw);
+    // スパムチェック
+    const spamCheck = isSpam(message);
+    if (spamCheck.spam) {
+      console.log(`[Discord通知スキップ] 理由: ${spamCheck.reason} | 送信元: ${message.from}`);
+      return; 
+    }
 
-		let body = removeQuotedText(parsed.text || parsed.html || "");;
+    // Discord通知処理（スパムでない場合のみ）
+    const parsed = await PostalMime.parse(message.raw);
 
-		if (body.length > 1900 ){
-			body = body.substring(0, 1890) + "\n...（省略）";
-		}
-		
-		const date = formatDate(parsed.date);
-		const toString = formatAddresses(parsed.to);
+    let body = removeQuotedText(parsed.text || parsed.html || "");
+
+    if (body.length > 1900 ){
+      body = body.substring(0, 1890) + "\n...（省略）";
+    }
+    
+    const date = formatDate(parsed.date);
+    const toString = formatAddresses(parsed.to);
     const ccString = formatAddresses(parsed.cc);
     const bccString = formatAddresses(parsed.bcc);
 
-		const payload = {
+    const payload = {
       content: `\`\`\`件名: ${parsed.subject}\n送信元: ${parsed.from?.address}\n送信先: ${toString}\n        Cc: ${ccString}, Bcc: ${bccString}\n受信日: ${date}\n\`\`\``,
       embeds: [{
-				title: parsed.subject,
-				color: 9341951,
-				author: {
-					name: parsed.from?.name,
-				},
-				footer:{
-					text: date,
-				},
-				description: body,
-			}],
+        title: parsed.subject,
+        color: 9341951,
+        author: {
+          name: parsed.from?.name,
+        },
+        footer:{
+          text: date,
+        },
+        description: body,
+      }],
     };
 
-		if (!DISCORD_WEBHOOK_URL) {
-			console.error("エラー: DISCORD_WEBHOOK_URLが設定されていません");
-			return;
-		}
+    if (!DISCORD_WEBHOOK_URL) {
+      console.error("エラー: DISCORD_WEBHOOK_URLが設定されていません");
+      return;
+    }
 
-		const options = {
+    const options = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -92,8 +140,9 @@ export default {
       body: JSON.stringify(payload)
     };
 
-		const response = await fetch(DISCORD_WEBHOOK_URL, options).catch (e => console.error("Discord転送エラー:", e));
-		console.log(response.status);
-	}
+    const response = await fetch(DISCORD_WEBHOOK_URL, options).catch(e => console.error("Discord転送エラー:", e));
+    if (response) {
+      console.log(`Discord Webhook Status: ${response.status}`);
+    }
+  }
 };
-
